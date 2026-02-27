@@ -10,7 +10,7 @@ poller = rek 'components/poller'
 configs = rek 'config'
 
 # connect to mongo
-mongoose.connect configs.MONGO_URI
+mongoose.connect configs.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true }
 
 # configure server
 app.disable 'x-powered-by'

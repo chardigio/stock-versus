@@ -1,18 +1,21 @@
 {
   "name": "StockVersus",
   "version": "1.0.0",
+  "scripts": {
+    "start": "coffee app.coffee"
+  },
   "dependencies": {
     "basic-auth-connect": "^1.0.0",
-    "bcrypt": "^0.8.2",
-    "body-parser": "^1.12.4",
-    "coffee-script": "^1.9.1",
-    "express": "^4.12.3",
-    "lodash": "^3.6.0",
-    "mongoose": "^4.0.1",
-    "mongoose-autopopulate": "^0.1.0",
-    "mongoose-id-validator": "^0.1.8",
-    "mongoose-timestamp": "^0.4.0",
+    "bcryptjs": "^2.4.3",
+    "body-parser": "^1.20.2",
+    "coffeescript": "^2.7.0",
+    "express": "^4.18.2",
+    "lodash": "^4.17.21",
+    "mongoose": "^6.12.0",
+    "mongoose-autopopulate": "^1.1.0",
+    "mongoose-id-validator": "^0.6.0",
+    "mongoose-timestamp": "^0.6.0",
     "rekuire": "^0.1.9",
-    "request": "latest"
+    "request": "^2.88.2"
   }
 }
