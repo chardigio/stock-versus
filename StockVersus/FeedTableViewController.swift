@@ -16,7 +16,7 @@ class FeedTableViewController: UITableViewController {
         super.viewDidLoad()
 
         self.view.backgroundColor = UIColor.init(patternImage: #imageLiteral(resourceName: "bg"))
-        logout_button.setTitleTextAttributes( [NSFontAttributeName : UIFont(name: "Euphemia UCAS", size: 18)!], for: .normal)
+        logout_button.setTitleTextAttributes( [NSAttributedString.Key.font : UIFont(name: "Euphemia UCAS", size: 18)!], for: .normal)
         
         getPortfolios()
     }

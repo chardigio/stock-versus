@@ -252,8 +252,9 @@ class NetworkHandler {
                 return
             }
 
-            if let price = (data?["stock"] as? [String:Any])?["balance"] as? Float {
-                cb(price, nil)
+            if let stockData = data?["stock"] as? [String:Any],
+               let balance = stockData["balance"] as? NSNumber {
+                cb(balance.floatValue, nil)
             } else {
                 cb(nil, NSError(domain: "bad response", code: 400, userInfo: nil))
             }
