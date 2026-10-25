@@ -2,7 +2,7 @@ _ = require 'lodash'
 mongoose = require 'mongoose'
 timestamps = require 'mongoose-timestamp'
 idValidator = require 'mongoose-id-validator'
-bcrypt = require 'bcrypt'
+bcrypt = require 'bcryptjs'
 
 schema = mongoose.Schema
   name: String

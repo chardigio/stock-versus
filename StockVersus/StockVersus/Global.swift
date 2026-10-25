@@ -16,16 +16,16 @@ var USER_USERNAME  = ""
 let NUM_PORTFOLIOS: Int32 = 100 // fake
 let PORTFOLIO_START_VALUE: Float = 100000.00
 
-#if (arch(i386) || arch(x86_64)) && os(iOS) // if running on simulator, route to localhost
+#if targetEnvironment(simulator) // if running on simulator, route to localhost
 let API_URL = "http://localhost:3939"
 let TESTING = true
-#else                                       // otherwise, route to CharlieD.me server
+#else                            // otherwise, route to CharlieD.me server
 let API_URL = "http://13.58.53.92:3939"
 let TESTING = false
 #endif
 
-enum TimeUnit {
-    case day, week, month, quarter, year, alltime
+enum TimeUnit: Int {
+    case day = 0, week, month, quarter, year, alltime
 }
 
 func rankPercentString(for ranking: Int32) -> String {
@@ -137,7 +137,7 @@ extension Float {
         let negative = self < 0
         let abs_val = abs(self)
         let index1 = abs_val.dollarString.index(after: abs_val.dollarString.startIndex)
-        let without_dollar_string = abs_val.dollarString.substring(from: index1)
+        let without_dollar_string = String(abs_val.dollarString[index1...])
         let prefix =  negative ? "-" : ""
         return prefix + without_dollar_string
     }

@@ -8,6 +8,18 @@
 
 import Foundation
 
+// Helper extensions for safe JSON number parsing
+// JSONSerialization returns NSNumber for all numbers; in Swift 5,
+// `as? Float` on a Double-backed NSNumber fails, so we go through NSNumber.
+extension Dictionary where Key == String, Value == Any {
+    func floatValue(_ key: String) -> Float {
+        return (self[key] as? NSNumber)?.floatValue ?? 0
+    }
+    func int32Value(_ key: String) -> Int32 {
+        return (self[key] as? NSNumber)?.int32Value ?? 0
+    }
+}
+
 class DataParser {
     public static func parseAndSavePortfolio(_ data: [String: Any], _ cb: (Portfolio?, Error?) -> ()) {
         CoreDataHandler.fetchUser() { user, err in
@@ -29,25 +41,27 @@ class DataParser {
 
                 portfolio.id = id
                 portfolio.user = user
-                portfolio.updated_at = Date() as NSDate
-                portfolio.time_init = Date() as NSDate
-                portfolio.time_init = dateFromString(data["created_at"] as! String) as NSDate? ?? portfolio.time_init
+                portfolio.updated_at = Date()
+                portfolio.time_init = Date()
+                if let createdAt = dateFromString(data["created_at"] as! String) {
+                    portfolio.time_init = createdAt
+                }
                 portfolio.name = data["name"] as? String
-                portfolio.cash = data["cash"] as! Float
+                portfolio.cash = data.floatValue("cash")
 
-                portfolio.ranking_d = data["ranking_d"] as! Int32
-                portfolio.ranking_w = data["ranking_w"] as! Int32
-                portfolio.ranking_m = data["ranking_m"] as! Int32
-                portfolio.ranking_q = data["ranking_q"] as! Int32
-                portfolio.ranking_y = data["ranking_y"] as! Int32
-                portfolio.ranking_a = data["ranking_a"] as! Int32
+                portfolio.ranking_d = data.int32Value("ranking_d")
+                portfolio.ranking_w = data.int32Value("ranking_w")
+                portfolio.ranking_m = data.int32Value("ranking_m")
+                portfolio.ranking_q = data.int32Value("ranking_q")
+                portfolio.ranking_y = data.int32Value("ranking_y")
+                portfolio.ranking_a = data.int32Value("ranking_a")
 
-                portfolio.balance = data["balance"] as! Float
-                portfolio.balance_d = data["balance_d"] as! Float
-                portfolio.balance_w = data["balance_w"] as! Float
-                portfolio.balance_m = data["balance_m"] as! Float
-                portfolio.balance_q = data["balance_q"] as! Float
-                portfolio.balance_y = data["balance_y"] as! Float
+                portfolio.balance = data.floatValue("balance")
+                portfolio.balance_d = data.floatValue("balance_d")
+                portfolio.balance_w = data.floatValue("balance_w")
+                portfolio.balance_m = data.floatValue("balance_m")
+                portfolio.balance_q = data.floatValue("balance_q")
+                portfolio.balance_y = data.floatValue("balance_y")
 
                 var stocks_to_save = [Stock]()
                 var stocks_to_delete = [Stock]()
@@ -65,7 +79,7 @@ class DataParser {
                         // if we find a match, sieve it out of the json data because we don't need to do anything with it
                         buy_data = buy_data!.filter {
                             $0["id"] as! String != b.id! ||
-                            ($0["stock"] as! [String: Any])["balance"] as! Float != b.balance
+                            ($0["stock"] as! [String: Any]).floatValue("balance") != b.balance
                         }
                         // if we didn't sieve it out
                         if buy_data!.count == before_count {
@@ -79,17 +93,17 @@ class DataParser {
                 for b in buy_data! {
                     let s = Stock(context: CoreDataHandler.context)
                     s.id = b["id"] as? String
-                    s.shares = b["shares"] as! Int32
-                    s.balance_a = b["balance_a"] as! Float
+                    s.shares = b.int32Value("shares")
+                    s.balance_a = b.floatValue("balance_a")
 
                     let stock = b["stock"] as! [String: Any]
                     s.ticker = stock["ticker"] as? String
-                    s.balance = stock["balance"] as! Float
-                    s.balance_d = stock["balance_d"] as! Float
-                    s.balance_w = stock["balance_w"] as! Float
-                    s.balance_m = stock["balance_m"] as! Float
-                    s.balance_q = stock["balance_q"] as! Float
-                    s.balance_y = stock["balance_y"] as! Float
+                    s.balance = stock.floatValue("balance")
+                    s.balance_d = stock.floatValue("balance_d")
+                    s.balance_w = stock.floatValue("balance_w")
+                    s.balance_m = stock.floatValue("balance_m")
+                    s.balance_q = stock.floatValue("balance_q")
+                    s.balance_y = stock.floatValue("balance_y")
                     print(s.balance)
                     print(s.balance_a)
                     print("balances-------")
@@ -104,14 +118,14 @@ class DataParser {
                 if put_data == nil {
                     put_data = [[String:Any]]()
                 }
-                
+
                 if portfolio.puts != nil {
                     for put in portfolio.puts! {
                         let p = put as! Stock
                         let before_count = put_data!.count
                         put_data = put_data!.filter {
                             $0["id"] as! String != p.id! ||
-                            ($0["stock"] as! [String: Any])["balance"] as! Float != p.balance
+                            ($0["stock"] as! [String: Any]).floatValue("balance") != p.balance
                         }
                         if put_data!.count == before_count {
                             stocks_to_delete.append(p)
@@ -122,17 +136,17 @@ class DataParser {
                 for p in put_data! {
                     let s = Stock(context: CoreDataHandler.context)
                     s.id = p["id"] as? String
-                    s.shares = p["shares"] as! Int32
-                    s.balance_a = p["balance_a"] as! Float
+                    s.shares = p.int32Value("shares")
+                    s.balance_a = p.floatValue("balance_a")
 
                     let stock = p["stock"] as! [String: Any]
                     s.ticker = stock["ticker"] as? String
-                    s.balance = stock["balance"] as! Float
-                    s.balance_d = stock["balance_d"] as! Float
-                    s.balance_w = stock["balance_w"] as! Float
-                    s.balance_m = stock["balance_m"] as! Float
-                    s.balance_q = stock["balance_q"] as! Float
-                    s.balance_y = stock["balance_y"] as! Float
+                    s.balance = stock.floatValue("balance")
+                    s.balance_d = stock.floatValue("balance_d")
+                    s.balance_w = stock.floatValue("balance_w")
+                    s.balance_m = stock.floatValue("balance_m")
+                    s.balance_q = stock.floatValue("balance_q")
+                    s.balance_y = stock.floatValue("balance_y")
 
 
                     s.buy_portfolio = nil

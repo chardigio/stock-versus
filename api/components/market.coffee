@@ -4,101 +4,89 @@ rek = require 'rekuire'
 configs = rek 'config'
 Stock = rek 'models/stock'
 
-# these take optional stock parameters because in poller you need to basically get and pass them
+YAHOO_BASE = "https://query1.finance.yahoo.com/v8/finance/chart"
+HEADERS = { 'User-Agent': 'Mozilla/5.0' }
+
+# Get current price for a stock
 module.exports.getStockNow = (ticker, stock, cb) ->
   request
-    url: "http://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=#{ticker}&interval=1min&apikey=#{configs.ALPHA_VANTAGE_KEY}&outputsize=compact"
+    url: "#{YAHOO_BASE}/#{ticker}?interval=1d&range=1d"
     method: 'GET'
     json: true
+    headers: HEADERS
     (error, response, body) ->
-      if error then cb error
-      else if response.statusCode isnt 200 then cb new Error "unable to get task: #{JSON.stringify body}"
-      else
-        stock_pieces = {}
-        stock_pieces.ticker = ticker
-        stock_pieces.balance = Number _.values(_.values(body['Time Series (1min)'])[0])[0]
-        stock_pieces.num_portfolios = 0
+      if error then return cb error
+      if response.statusCode isnt 200 then return cb new Error "unable to get stock: #{response.statusCode}"
+      if not body?.chart?.result?[0] then return cb new Error "no data for #{ticker}"
 
-        cb null, stock, stock_pieces
+      meta = body.chart.result[0].meta
+      stock_pieces = {}
+      stock_pieces.ticker = ticker
+      stock_pieces.balance = meta.regularMarketPrice
+      stock_pieces.num_portfolios = 0
 
+      cb null, stock, stock_pieces
+
+# Get current + historical prices for a stock
 module.exports.getStockHistory = (ticker, stock, cb) ->
-  now = new Date()
-  hits = 0
-  stock_pieces = {}
-  stock_pieces.ticker = ticker
-
-  # now
   request
-    url: "http://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=#{ticker}&interval=1min&apikey=#{configs.ALPHA_VANTAGE_KEY}&outputsize=compact"
+    url: "#{YAHOO_BASE}/#{ticker}?interval=1d&range=1y"
     method: 'GET'
     json: true
+    headers: HEADERS
     (error, response, body) ->
-      if error then cb error
-      else if response.statusCode isnt 200 then cb new Error "unable to get task: #{JSON.stringify body}"
+      if error then return cb error
+      if response.statusCode isnt 200 then return cb new Error "unable to get stock: #{response.statusCode}"
+      if not body?.chart?.result?[0] then return cb new Error "no data for #{ticker}"
+
+      result = body.chart.result[0]
+      meta = result.meta
+      closes = result.indicators.quote[0].close
+      timestamps = result.timestamp
+
+      now = new Date()
+      stock_pieces = {}
+      stock_pieces.ticker = ticker
+      stock_pieces.balance = meta.regularMarketPrice
+
+      # Helper: find the close price on or before a target date
+      findCloseOnOrBefore = (targetDate) ->
+        targetTs = targetDate.getTime() / 1000
+        best = null
+        for i in [0...timestamps.length]
+          if timestamps[i] <= targetTs and closes[i]?
+            best = closes[i]
+        best or stock_pieces.balance
+
+      # Yesterday / previous trading day
+      if closes.length >= 2
+        # Find last non-null close before today
+        stock_pieces.balance_d = stock_pieces.balance
+        for i in [closes.length - 2..0] by -1
+          if closes[i]?
+            stock_pieces.balance_d = closes[i]
+            break
       else
-        stock_pieces.balance = Number (_.values(body['Time Series (1min)'])[0])["4. close"]
-        hits += 1
-        tryCallingBack()
+        stock_pieces.balance_d = stock_pieces.balance
 
-  # day
-  request
-    url: "http://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=#{ticker}&interval=1min&apikey=#{configs.ALPHA_VANTAGE_KEY}&outputsize=compact"
-    method: 'GET'
-    json: true
-    (error, response, body) ->
-      if error then cb error
-      else if response.statusCode isnt 200 then cb new Error "unable to get task: #{JSON.stringify body}"
-      else
-        if _.values(body['Time Series (Daily)'])[1]
-          stock_pieces.balance_d = Number (_.values(body['Time Series (Daily)'])[1])["4. close"]
-        else
-          stock_pieces.balance_d = Number (_.values(body['Time Series (Daily)'])[0])["1. open"]
-        hits += 1
-        tryCallingBack()
+      # 1 week ago
+      weekAgo = new Date(now)
+      weekAgo.setDate weekAgo.getDate() - 7
+      stock_pieces.balance_w = findCloseOnOrBefore weekAgo
 
-  # week
-  request
-    url: "http://www.alphavantage.co/query?function=TIME_SERIES_WEEKLY&symbol=#{ticker}&interval=1min&apikey=#{configs.ALPHA_VANTAGE_KEY}&outputsize=compact"
-    method: 'GET'
-    json: true
-    (error, response, body) ->
-      if error then cb error
-      else if response.statusCode isnt 200 then cb new Error "unable to get task: #{JSON.stringify body}"
-      else
-        if _.values(body['Weekly Time Series'])[1]
-          stock_pieces.balance_w = Number (_.values(body['Weekly Time Series'])[1])["4. close"]
-        else
-          stock_pieces.balance_w = Number (_.values(body['Weekly Time Series'])[0])["1. open"]
-        hits += 1
-        tryCallingBack()
+      # 1 month ago
+      monthAgo = new Date(now)
+      monthAgo.setMonth monthAgo.getMonth() - 1
+      stock_pieces.balance_m = findCloseOnOrBefore monthAgo
 
-  # month, quarter, year
-  request
-    url: "http://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY&symbol=#{ticker}&interval=1min&apikey=#{configs.ALPHA_VANTAGE_KEY}"
-    method: 'GET'
-    json: true
-    (error, response, body) ->
-      if error then cb error
-      else if response.statusCode isnt 200 then cb new Error "unable to get task: #{JSON.stringify body}"
-      else
-        if _.values(body['Monthly Time Series'])[1]
-          stock_pieces.balance_m = Number (_.values(body['Monthly Time Series'])[1])["4. close"]
-        else
-          stock_pieces.balance_m = Number (_.values(body['Monthly Time Series'])[0])["1. open"]
+      # 1 quarter ago
+      quarterAgo = new Date(now)
+      quarterAgo.setMonth quarterAgo.getMonth() - 3
+      stock_pieces.balance_q = findCloseOnOrBefore quarterAgo
 
-        if _.values(body['Monthly Time Series'])[Math.floor((now.getMonth()+1)/3)*3-1]
-          stock_pieces.balance_q = Number (_.values(body['Monthly Time Series'])[Math.floor((now.getMonth()+1)/3)*3-1])["4. close"]
-        else
-          stock_pieces.balance_q = Number (_.values(body['Monthly Time Series'])[_.values(body['Monthly Time Series']).length - 1])["1. open"]
+      # 1 year ago (use earliest available data point)
+      yearAgo = new Date(now)
+      yearAgo.setFullYear yearAgo.getFullYear() - 1
+      stock_pieces.balance_y = findCloseOnOrBefore yearAgo
 
-        if _.values(body['Monthly Time Series'])[now.getMonth()+1]
-          stock_pieces.balance_y = Number (_.values(body['Monthly Time Series'])[now.getMonth()+1])["4. close"]
-        else
-          stock_pieces.balance_y = Number (_.values(body['Monthly Time Series'])[_.values(body['Monthly Time Series']).length - 1])["1. open"]
-
-        hits += 1
-        tryCallingBack()
-
-  tryCallingBack = ->
-    if hits == 4
       cb null, stock, stock_pieces

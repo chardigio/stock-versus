@@ -59,8 +59,8 @@ class PortfolioViewController: UIViewController {
         let balances = [portfolio!.balance_d, portfolio!.balance_w, portfolio!.balance_m, portfolio!.balance_q, portfolio!.balance_y, PORTFOLIO_START_VALUE]
 
         balance_label.text = portfolio!.balance.dollarString
-        change_label.text = priceChangeString(for: portfolio!.balance, since: balances[mode.hashValue])
-        change_label.textColor = changeColor(for: portfolio!.balance, since: balances[mode.hashValue])
+        change_label.text = priceChangeString(for: portfolio!.balance, since: balances[mode.rawValue])
+        change_label.textColor = changeColor(for: portfolio!.balance, since: balances[mode.rawValue])
 
         cash_label.text = portfolio!.cash.dollarString
     }
@@ -121,7 +121,7 @@ class PortfolioViewController: UIViewController {
 
     func moveUnderline() {
         UIView.animate(withDuration: 0.25, animations: {
-            self.underline_view.frame = self.underline_view.frame.offsetBy(dx: 5 + self.time_unit_buttons[self.mode.hashValue].frame.minX - self.underline_view.frame.minX , dy: 0)
+            self.underline_view.frame = self.underline_view.frame.offsetBy(dx: 5 + self.time_unit_buttons[self.mode.rawValue].frame.minX - self.underline_view.frame.minX , dy: 0)
         })
     }
 
@@ -148,7 +148,7 @@ class PortfolioViewController: UIViewController {
         view.addSubview(new_order_view!)
     }
 
-    func outsideOfNewOrderViewTapped(_ sender: Any?) {
+    @objc func outsideOfNewOrderViewTapped(_ sender: Any?) {
         UIView.animate(withDuration: 0.25, animations: {
             self.new_order_view?.alpha = 0
         }, completion: { _ in

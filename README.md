@@ -3,7 +3,9 @@
 
 StockVersus is an app that lets users simulate trading stocks and managing a portfolio.
 
-It connects to the Node.coffee API that is included in the repo which connects to AlphaVantage's stock information. The API maintains a database of its users, their portfolios, and whichever stocks are held by anyone. In addition, the user's information is maintained clientside so that the app can still function without internet connection.
+![Demo](demo.gif)
+
+It connects to the Node.coffee API that is included in the repo which connects to Yahoo Finance's stock information. The API maintains a database of its users, their portfolios, and whichever stocks are held by anyone. In addition, the user's information is maintained clientside so that the app can still function without internet connection.
 
 By using multithreaded network requests and complex JSON parsing, the app is able to connect with the API and get the latest information upon any return to the main feed.
 

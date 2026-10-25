@@ -54,7 +54,7 @@ class StockRowsView: UIView, UITableViewDelegate, UITableViewDataSource {
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let nib: NSArray = Bundle.main.loadNibNamed("StockRowsViewCell", owner: self)! as NSArray
+        let nib = Bundle.main.loadNibNamed("StockRowsViewCell", owner: self, options: nil)!
         let cell = nib[0] as? StockRowsViewCell
 
         if stocks.count > indexPath.row {
@@ -77,7 +77,7 @@ class StockRowsView: UIView, UITableViewDelegate, UITableViewDataSource {
 
     public func updateCells(for tu: TimeUnit) {
         mode = tu
-        print(mode.hashValue)
+        print(mode.rawValue)
         for cell in table_view.visibleCells {
             if let c = cell as? StockRowsViewCell {
                 c.setPriceChangeLabel(for: mode)
